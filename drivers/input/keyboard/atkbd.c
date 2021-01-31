@@ -389,6 +389,491 @@ static unsigned int atkbd_compat_scancode(struct atkbd *atkbd, unsigned int code
 	return code;
 }
 
+// [](file:///home/wsh/doc/t/linux_kernel_keyboard.md)
+// tests: @ref:qc-linux-atkbd-tests
+
+// TODO: module me once you managed to debug modules...
+
+#pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
+
+// #define DEBUG_WATAASH_ATKBD_EMACS_ON_QEMU
+
+static irqreturn_t atkbd_interrupt(struct serio *serio, unsigned char data,
+				   unsigned int flags);
+
+struct key_map {
+	const char *key;
+	const unsigned int *const press_action_codes;
+	const char *const press_action_codes_str;
+	const unsigned int *const release_action_codes;
+	const char *const release_action_codes_str;
+	enum {
+		KEY_STATE_RELEASED,
+		KEY_STATE_PRESSING,
+		KEY_STATE_MODIFIER_RELEASED,
+	} key_state;
+};
+
+#define and ((unsigned int)-1)
+#define end ((unsigned int)-2)
+
+// key names: xbindkeys -v -mk
+//   xbindkeys -v -mk で押せないキーは…どうしよう
+//   xbindkeys に "BackSpace" は登場しない; TODO: debug
+//   とりあえず仮の名前にしておいて、分かり次第リネームするか
+// https://man7.org/linux/man-pages/man3/readline.3.html
+//   kill-line (C-k)
+//   unix-line-discard (C-u)
+//   unix-word-rubout (C-w)
+static const unsigned int action_codes_BackSpace_press[] = { 0x0eU, end };
+static const unsigned int action_codes_BackSpace_release[] = { 0x8eU, end };
+static const unsigned int action_codes_Delete_press[] = { 0xe0U, 0x53U, end };
+static const unsigned int action_codes_Delete_release[] = { 0xe0U, 0xd3U, end };
+static const unsigned int action_codes_Down_press[] = { 0xe0U, 0x50U, end };
+static const unsigned int action_codes_Down_release[] = { 0xe0U, 0xd0U, end };
+static const unsigned int action_codes_End_press[] = { 0xe0U, 0x4fU, end };
+static const unsigned int action_codes_End_release[] = { 0xe0U, 0xcfU, end };
+static const unsigned int action_codes_Escape_press[] = { 0x01U, end };
+static const unsigned int action_codes_Escape_release[] = { 0x81U, end };
+static const unsigned int action_codes_F10_press[] = { 0x44U, end };
+static const unsigned int action_codes_F10_release[] = { 0xc4U, end };
+static const unsigned int action_codes_F11_press[] = { 0x57U, end };
+static const unsigned int action_codes_F11_release[] = { 0xd7U, end };
+static const unsigned int action_codes_F12_press[] = { 0x58U, end };
+static const unsigned int action_codes_F12_release[] = { 0xd8U, end };
+static const unsigned int action_codes_F1_press[] = { 0x3bU, end };
+static const unsigned int action_codes_F1_release[] = { 0xbbU, end };
+static const unsigned int action_codes_F2_press[] = { 0x3cU, end };
+static const unsigned int action_codes_F2_release[] = { 0xbcU, end };
+static const unsigned int action_codes_F3_press[] = { 0x3dU, end };
+static const unsigned int action_codes_F3_release[] = { 0xbdU, end };
+static const unsigned int action_codes_F4_press[] = { 0x3eU, end };
+static const unsigned int action_codes_F4_release[] = { 0xbeU, end };
+static const unsigned int action_codes_F5_press[] = { 0x3fU, end };
+static const unsigned int action_codes_F5_release[] = { 0xbfU, end };
+static const unsigned int action_codes_F6_press[] = { 0x40U, end };
+static const unsigned int action_codes_F6_release[] = { 0xc0U, end };
+static const unsigned int action_codes_F7_press[] = { 0x41U, end };
+static const unsigned int action_codes_F7_release[] = { 0xc1U, end };
+static const unsigned int action_codes_F8_press[] = { 0x42U, end };
+static const unsigned int action_codes_F8_release[] = { 0xc2U, end };
+static const unsigned int action_codes_F9_press[] = { 0x43U, end };
+static const unsigned int action_codes_F9_release[] = { 0xc3U, end };
+static const unsigned int action_codes_Home_press[] = { 0xe0U, 0x47U, end };
+static const unsigned int action_codes_Home_release[] = { 0xe0U, 0xc7U, end };
+static const unsigned int action_codes_Left_press[] = { 0xe0U, 0x4bU, end };
+static const unsigned int action_codes_Left_release[] = { 0xe0U, 0xcbU, end };
+static const unsigned int action_codes_Next_press[] = { 0xe0U, 0x51U, end }; // PageDown
+static const unsigned int action_codes_Next_release[] = { 0xe0U, 0xd1U, end };
+static const unsigned int action_codes_Prior_press[] = { 0xe0U, 0x49U, end }; // PageUp
+static const unsigned int action_codes_Prior_release[] = { 0xe0U, 0xc9U, end };
+static const unsigned int action_codes_Return_press[] = { 0x1cU, end };
+static const unsigned int action_codes_Return_release[] = { 0x9cU, end };
+static const unsigned int action_codes_Right_press[] = { 0xe0U, 0x4dU, end };
+static const unsigned int action_codes_Right_release[] = { 0xe0U, 0xcdU, end };
+static const unsigned int action_codes_Tab_press[] = { 0x0fU, end };
+static const unsigned int action_codes_Tab_release[] = { 0x8fU, end };
+static const unsigned int action_codes_Up_press[] = { 0xe0U, 0x48U, end };
+static const unsigned int action_codes_Up_release[] = { 0xe0U, 0xc8U, end };
+static const unsigned int action_codes_asciicircum_10[] = { 0x0dU, 0x8dU, and, 0x0dU, 0x8dU, and, 0x0dU, 0x8dU, and, 0x0dU, 0x8dU, and, 0x0dU, 0x8dU, and, 0x0dU, 0x8dU, and, 0x0dU, 0x8dU, and, 0x0dU, 0x8dU, and, 0x0dU, 0x8dU, and, 0x0dU, 0x8dU, end }; // ^^^^^^^^^^
+static const unsigned int action_codes_kill_line[] = { 0x2aU, and, 0xe0U, 0x4fU, and, 0xe0U, 0xcfU, and, 0xaaU, and, 0xe0U, 0x53U, and, 0xe0U, 0xd3U, end }; // Shift End _End _Shift Delete _Delete
+static const unsigned int action_codes_minus_10[] = { 0x0cU, 0x8cU, and, 0x0cU, 0x8cU, and, 0x0cU, 0x8cU, and, 0x0cU, 0x8cU, and, 0x0cU, 0x8cU, and, 0x0cU, 0x8cU, and, 0x0cU, 0x8cU, and, 0x0cU, 0x8cU, and, 0x0cU, 0x8cU, and, 0x0cU, 0x8cU, end }; // ---------
+static const unsigned int action_codes_nop[] = { end };
+static const unsigned int action_codes_space_10[] = { 0x39U, 0xb9U, and, 0x39U, 0xb9U, and, 0x39U, 0xb9U, and, 0x39U, 0xb9U, and, 0x39U, 0xb9U, and, 0x39U, 0xb9U, and, 0x39U, 0xb9U, and, 0x39U, 0xb9U, and, 0x39U, 0xb9U, and, 0x39U, 0xb9U, end }; // "          "
+static const unsigned int action_codes_todo_numpad0_press[] = { 0x52U, end };
+static const unsigned int action_codes_todo_numpad0_release[] = { 0xd2U, end };
+static const unsigned int action_codes_todo_numpad1_press[] = { 0x4fU, end };
+static const unsigned int action_codes_todo_numpad1_release[] = { 0xcfU, end };
+static const unsigned int action_codes_todo_numpad2_press[] = { 0x50U, end };
+static const unsigned int action_codes_todo_numpad2_release[] = { 0xd0U, end };
+static const unsigned int action_codes_todo_numpad3_press[] = { 0x51U, end };
+static const unsigned int action_codes_todo_numpad3_release[] = { 0xd1U, end };
+static const unsigned int action_codes_todo_numpad4_press[] = { 0x4bU, end };
+static const unsigned int action_codes_todo_numpad4_release[] = { 0xcbU, end };
+static const unsigned int action_codes_todo_numpad5_press[] = { 0x4cU, end };
+static const unsigned int action_codes_todo_numpad5_release[] = { 0xccU, end };
+static const unsigned int action_codes_todo_numpad6_press[] = { 0x4dU, end };
+static const unsigned int action_codes_todo_numpad6_release[] = { 0xcdU, end };
+static const unsigned int action_codes_todo_numpad7_press[] = { 0x47U, end };
+static const unsigned int action_codes_todo_numpad7_release[] = { 0xc7U, end };
+static const unsigned int action_codes_todo_numpad8_press[] = { 0x48U, end };
+static const unsigned int action_codes_todo_numpad8_release[] = { 0xc8U, end };
+static const unsigned int action_codes_todo_numpad9_press[] = { 0x49U, end };
+static const unsigned int action_codes_todo_numpad9_release[] = { 0xc9U, end };
+static const unsigned int action_codes_unix_line_discard[] = { 0x2aU, and, 0xe0U, 0x47U, and, 0xe0U, 0xc7U, and, 0xaaU, and, 0xe0U, 0x53U, and, 0xe0U, 0xd3U, end }; // Shift Home _Home _Shift Delete _Delete
+static const unsigned int action_codes_unix_word_rubout[] = { 0x1dU, and, 0x0eU, and, 0x8eU, and, 0x9dU, end }; // Ctrl BackSpace _BackSpace, _Ctrl
+
+// asciicircum_10 minus_10 space_10: without key releases:
+//   static const unsigned int action_codes_asciicircum_10[] = {0x0dU, and, 0x0dU, and, 0x0dU, and, 0x0dU, and, 0x0dU, and, 0x0dU, and, 0x0dU, and, 0x0dU, and, 0x0dU, and, 0x0dU, end};
+// puts only one "-" because 250ms not elapsed between keys; see:
+//   atkbd_set_device_attrs():
+//   input_dev->rep[REP_DELAY] = 250;
+//   atkbd_interrupt():
+//   1st: atkbd->time = jiffies + msecs_to_jiffies(dev->rep[REP_DELAY]) / 2;
+//   2nd and later: value = time_before(jiffies, atkbd->time) && atkbd->last == code ? 1 : 2; // time_before() is true; 1
+
+// no lock needed (see [no-lock])
+#define p(x) x, #x
+#define r(x) x, #x
+static struct key_map maps_capslock[0x80] = {
+	// [press keycode] /* release keycode (see also [XXX:release]) */
+	[0x02] /* 0x82 */ = { "1", p(action_codes_todo_numpad1_press), r(action_codes_todo_numpad1_release) },
+	[0x03] /* 0x83 */ = { "2", p(action_codes_todo_numpad2_press), r(action_codes_todo_numpad2_release) },
+	[0x04] /* 0x84 */ = { "3", p(action_codes_todo_numpad3_press), r(action_codes_todo_numpad3_release) },
+	[0x05] /* 0x85 */ = { "4", p(action_codes_todo_numpad4_press), r(action_codes_todo_numpad4_release) },
+	[0x06] /* 0x86 */ = { "5", p(action_codes_todo_numpad5_press), r(action_codes_todo_numpad5_release) },
+	[0x07] /* 0x87 */ = { "6", p(action_codes_todo_numpad6_press), r(action_codes_todo_numpad6_release) },
+	[0x08] /* 0x88 */ = { "7", p(action_codes_todo_numpad7_press), r(action_codes_todo_numpad7_release) },
+	[0x09] /* 0x89 */ = { "8", p(action_codes_todo_numpad8_press), r(action_codes_todo_numpad8_release) },
+	[0x0a] /* 0x8a */ = { "9", p(action_codes_todo_numpad9_press), r(action_codes_todo_numpad9_release) },
+	[0x0b] /* 0x8b */ = { "0", p(action_codes_todo_numpad0_press), r(action_codes_todo_numpad0_release) },
+	[0x0c] /* 0x8c */ = { "-", p(action_codes_minus_10), r(action_codes_nop) },
+	[0x0d] /* 0x8d */ = { "^", p(action_codes_asciicircum_10), r(action_codes_nop) },
+	[0x39] /* 0xb9 */ = { "SP", p(action_codes_space_10), r(action_codes_nop) },
+
+	[0x1e] /* 0x9e */ = { "a", p(action_codes_Home_press), r(action_codes_Home_release) },
+	[0x30] /* 0xb0 */ = { "b", p(action_codes_Left_press), r(action_codes_Left_release) },
+	// [0x2e] /* 0xae */ = {"c"}
+	[0x20] /* 0xa0 */ = { "d", p(action_codes_Delete_press), r(action_codes_Delete_release) },
+	[0x12] /* 0x92 */ = { "e", p(action_codes_End_press), r(action_codes_End_release) },
+	[0x21] /* 0xa1 */ = { "f", p(action_codes_Right_press), r(action_codes_Right_release) },
+	[0x22] /* 0xa2 */ = { "g", p(action_codes_Escape_press), r(action_codes_Escape_release) },
+	[0x23] /* 0xa3 */ = { "h", p(action_codes_BackSpace_press), r(action_codes_BackSpace_release) },
+	[0x17] /* 0x97 */ = { "i", p(action_codes_Tab_press), r(action_codes_Tab_release) },
+	[0x24] /* 0xa4 */ = { "j", p(action_codes_Return_press), r(action_codes_Return_release) },
+	[0x25] /* 0xa5 */ = { "k", p(action_codes_kill_line), r(action_codes_nop) },
+	// [0x26] /* 0xa6 */ = {"l"}
+	[0x32] /* 0xb2 */ = { "m", p(action_codes_Return_press), r(action_codes_Return_release) },
+	[0x31] /* 0xb1 */ = { "n", p(action_codes_Down_press), r(action_codes_Down_release) },
+	// [0x18] /* 0x98 */ = {"o"}
+	[0x19] /* 0x99 */ = { "p", p(action_codes_Up_press), r(action_codes_Up_release) },
+	// [0x10] /* 0x90 */ = {"q"}
+	// [0x13] /* 0x93 */ = {"r"}
+	// [0x1f] /* 0x9f */ = {"s"}
+	// [0x14] /* 0x94 */ = {"t"}
+	[0x16] /* 0x96 */ = { "u", p(action_codes_unix_line_discard), r(action_codes_nop) },
+	// [0x2f] /* 0xaf */ = {"v"}
+	[0x11] /* 0x91 */ = { "w", p(action_codes_unix_word_rubout), r(action_codes_nop) },
+	// [0x2d] /* 0xad */ = {"x"}
+	// [0x15] /* 0x95 */ = {"y"}
+	// [0x2c] /* 0xac */ = {"z"}
+};
+static struct key_map maps_henkan[0x80] = {
+	[0x02] /* 0x82 */ = { "1", p(action_codes_F1_press), r(action_codes_F1_release) },
+	[0x03] /* 0x83 */ = { "2", p(action_codes_F2_press), r(action_codes_F2_release) },
+	[0x04] /* 0x84 */ = { "3", p(action_codes_F3_press), r(action_codes_F3_release) },
+	[0x05] /* 0x85 */ = { "4", p(action_codes_F4_press), r(action_codes_F4_release) },
+	[0x06] /* 0x86 */ = { "5", p(action_codes_F5_press), r(action_codes_F5_release) },
+	[0x07] /* 0x87 */ = { "6", p(action_codes_F6_press), r(action_codes_F6_release) },
+	[0x08] /* 0x88 */ = { "7", p(action_codes_F7_press), r(action_codes_F7_release) },
+	[0x09] /* 0x89 */ = { "8", p(action_codes_F8_press), r(action_codes_F8_release) },
+	[0x0a] /* 0x8a */ = { "9", p(action_codes_F9_press), r(action_codes_F9_release) },
+	[0x0b] /* 0x8b */ = { "0", p(action_codes_F10_press), r(action_codes_F10_release) },
+	[0x0c] /* 0x8c */ = { "-", p(action_codes_F11_press), r(action_codes_F11_release) },
+	[0x0d] /* 0x8d */ = { "^", p(action_codes_F12_press), r(action_codes_F12_release) },
+
+	[0x16] /* 0x96 */ = { "u", p(action_codes_Home_press), r(action_codes_Home_release) },
+	[0x18] /* 0x98 */ = { "o", p(action_codes_End_press), r(action_codes_End_release) },
+	[0x17] /* 0x97 */ = { "i", p(action_codes_Up_press), r(action_codes_Up_release) },
+	[0x24] /* 0xa4 */ = { "j", p(action_codes_Left_press), r(action_codes_Left_release) },
+	[0x25] /* 0xa5 */ = { "k", p(action_codes_Down_press), r(action_codes_Down_release) },
+	[0x26] /* 0xa6 */ = { "l", p(action_codes_Right_press), r(action_codes_Right_release) },
+	[0x23] /* 0xa3 */ = { "h", p(action_codes_Prior_press), r(action_codes_Prior_release) },
+	[0x31] /* 0xb1 */ = { "n", p(action_codes_Next_press), r(action_codes_Next_release) },
+};
+#undef p
+#undef r
+
+static_assert(SERIO_TIMEOUT == _BITUL(0));
+static_assert(SERIO_PARITY == _BITUL(1));
+static_assert(SERIO_FRAME == _BITUL(2));
+static_assert(SERIO_OOB_DATA == _BITUL(3));
+#define SERIO_WATAASH_DOING_ACTION _BITUL(9)
+
+static void action(struct serio *serio, const unsigned int *action_codes)
+{
+	unsigned int code;
+
+	while ((code = *(action_codes++)) != end) {
+		if (code == and) {
+			continue;
+		}
+		static_assert(ARRAY_SIZE(maps_capslock) == ARRAY_SIZE(maps_henkan));
+		static_assert(ARRAY_SIZE(maps_capslock) == 0x80);
+		compiletime_assert((code & ~0x80U) < ARRAY_SIZE(maps_capslock), "(code & ~0x80U) < ARRAY_SIZE(maps_capslock)"); /* code <= 0xffU */
+		atkbd_interrupt(serio, code, SERIO_WATAASH_DOING_ACTION);
+	}
+}
+
+static void release_modifier(struct serio *serio, struct key_map *maps)
+{
+	size_t i;
+	struct key_map *map;
+
+	static_assert(ARRAY_SIZE(maps_capslock) == ARRAY_SIZE(maps_henkan));
+	static_assert(ARRAY_SIZE(maps_capslock) == 0x80);
+	for (i = 0; i < ARRAY_SIZE(maps_capslock); i++) {
+		map = &maps[i];
+		switch (map->key_state) {
+		case KEY_STATE_RELEASED:
+			continue; // likely
+		case KEY_STATE_PRESSING:
+			dev_dbg(&serio->dev, "wataash_atkbd_emacs: release: %s\n", map->release_action_codes_str);
+			action(serio, map->release_action_codes);
+			map->key_state = KEY_STATE_MODIFIER_RELEASED;
+			continue;
+		case KEY_STATE_MODIFIER_RELEASED:
+			pr_err("wataash_atkbd_emacs: [BUG] KEY_STATE_MODIFIER_RELEASED i:%zu key:%s\n", i, map->key);
+			continue;
+		}
+		unreachable();
+	}
+}
+
+enum wataash_do_atkbd_emacs_ret {
+	wataash_do_atkbd_emacs_bypass,
+	wataash_do_atkbd_emacs_consumed,
+};
+
+// https://www.win.tue.nl/~aeb/linux/kbd/scancodes-1.html 1. Keyboard scancodes
+// BUG:
+// - Sometimes ThinkPad's TrackPad stops working for a few minutes (although its
+//   IRQ in /proc/interrupts increases). But the pointing stick continues to
+//   work even though its IRQ is same as the TrackPad!
+// returns: 0 or code
+static enum wataash_do_atkbd_emacs_ret
+wataash_do_atkbd_emacs(struct serio *serio, unsigned int code)
+{
+	// [no-lock]: assume that called only in one CPU, no interrupt reentrancy (no interrupt while interrupt), so no lock taken
+	{
+		static int processor_id = -1;
+		if (unlikely(processor_id == -1)) {
+			// x1x:
+			//   at boot: 2
+			//   sometimes changed to 0 (when sleep->awake?)
+			processor_id = smp_processor_id();
+			pr_info("wataash_atkbd_emacs: initialize processor_id: %d\n", processor_id);
+		}
+		if (unlikely(processor_id != smp_processor_id())) {
+			processor_id = smp_processor_id();
+			pr_err("wataash_atkbd_emacs: [BUG] processor_id changed: %d\n", processor_id);
+		}
+	}
+
+	if (unlikely(code == 0)) {
+		pr_err("wataash_atkbd_emacs: [BUG] code == 0");
+		return wataash_do_atkbd_emacs_bypass;
+	}
+	if (unlikely((code & ~0x80U) >= ARRAY_SIZE(maps_capslock))) { /* if code > 0xffU */
+		pr_err("wataash_atkbd_emacs: [BUG] big key code: %u", code);
+		return wataash_do_atkbd_emacs_bypass;
+	}
+
+	static_assert(ARRAY_SIZE(maps_capslock) == ARRAY_SIZE(maps_henkan));
+	static_assert(ARRAY_SIZE(maps_capslock) == 0x80);
+	compiletime_assert((code & ~0x80U) < ARRAY_SIZE(maps_capslock), "(code & ~0x80U) < ARRAY_SIZE(maps_capslock)"); /* code <= 0xffU */
+
+	extern unsigned int wataash_atkbd_emacs;
+	if (!wataash_atkbd_emacs)
+		return wataash_do_atkbd_emacs_bypass;
+
+	enum {
+#ifdef DEBUG_WATAASH_ATKBD_EMACS_ON_QEMU
+		code_caps_press = 0x0fU, // Tab press
+		code_caps_release = 0x8fU, // Tab release
+		code_hen_press = 0x29U, // Zen (半角/全角) press
+		code_hen_release = 0xa9U, // Zen (半角/全角) release
+#else
+		code_caps_press = 0x3aU, // CapsLock press
+		code_caps_release = 0xbaU, // CapsLock release
+		code_hen_press = 0x79U, // Henkan (変換) press
+		code_hen_release = 0xf9U, // Henkan (変換) release
+#endif
+	};
+
+	// [no-lock]
+	static enum {
+		HELD_CAPSLOCK,
+		HELD_HENKAN,
+		HELD_NONE,
+	} held = HELD_NONE;
+
+	switch (code) {
+	case code_caps_press:
+		dev_dbg(&serio->dev, "wataash_atkbd_emacs: CapsLock pressed\n");
+		switch (held) {
+		case HELD_NONE:
+			break;
+		case HELD_CAPSLOCK:
+			dev_dbg(&serio->dev, "wataash_atkbd_emacs: CapsLock already pressed (holding?)\n");
+			break;
+		case HELD_HENKAN:
+			pr_err("wataash_atkbd_emacs: CapsLock pressed while Henkan pressed; undefined behavior; would cause BUG\n");
+			break;
+		default:
+			unreachable();
+		}
+		held = HELD_CAPSLOCK;
+		return wataash_do_atkbd_emacs_consumed;
+	case code_caps_release:
+		dev_dbg(&serio->dev, "wataash_atkbd_emacs: CapsLock released\n");
+		switch (held) {
+		case HELD_NONE:
+			pr_err("wataash_atkbd_emacs: [BUG] already released\n");
+			break;
+		case HELD_CAPSLOCK:
+			break;
+		case HELD_HENKAN:
+			pr_err("wataash_atkbd_emacs: CapsLock released while Henkan pressed; undefined behavior; would cause BUG\n");
+			break;
+		default:
+			unreachable();
+		}
+		release_modifier(serio, maps_capslock);
+		held = HELD_NONE;
+		return wataash_do_atkbd_emacs_consumed;
+	case code_hen_press:
+		dev_dbg(&serio->dev, "wataash_atkbd_emacs: Henkan pressed\n");
+		switch (held) {
+		case HELD_NONE:
+			break;
+		case HELD_CAPSLOCK:
+			pr_err("wataash_atkbd_emacs: Henkan pressed while CapsLock pressed; undefined behavior; would cause BUG\n");
+			break;
+		case HELD_HENKAN:
+			dev_dbg(&serio->dev, "wataash_atkbd_emacs: Henkan already pressed (holding?)\n");
+			break;
+		default:
+			unreachable();
+		}
+		held = HELD_HENKAN;
+		return wataash_do_atkbd_emacs_consumed;
+	case code_hen_release:
+		dev_dbg(&serio->dev, "wataash_atkbd_emacs: Henkan released\n");
+		switch (held) {
+		case HELD_NONE:
+			pr_err("wataash_atkbd_emacs: [BUG] already released\n");
+			break;
+		case HELD_CAPSLOCK:
+			pr_err("wataash_atkbd_emacs: Henkan released while CapsLock pressed; undefined behavior; would cause BUG\n");
+			break;
+		case HELD_HENKAN:
+			break;
+		default:
+			unreachable();
+		}
+		release_modifier(serio, maps_capslock);
+		held = HELD_NONE;
+		return wataash_do_atkbd_emacs_consumed;
+	default:
+		break;
+	}
+
+	// not CapsLock/Henkan
+
+	static_assert(ARRAY_SIZE(maps_capslock) == ARRAY_SIZE(maps_henkan));
+	static_assert(ARRAY_SIZE(maps_capslock) == 0x80);
+	compiletime_assert((code & ~0x80U) < ARRAY_SIZE(maps_capslock), "(code & ~0x80U) < ARRAY_SIZE(maps_capslock)"); /* code <= 0xffU */
+	compiletime_assert(code != code_caps_press && code != code_caps_release, "code != code_caps_press && code != code_caps_release");
+	compiletime_assert(code != code_hen_press && code != code_hen_release, "code != code_hen_press && code != code_hen_release");
+
+	// [XXX:release]: right for **all** code?
+	bool press = (code & 0x80U) == 0U ? true : false;
+
+	if (!press) {
+		struct key_map *map = &maps_capslock[code & ~0x80U];
+		if (map->key_state == KEY_STATE_MODIFIER_RELEASED) {
+			dev_dbg(&serio->dev, "wataash_atkbd_emacs: release CapsLock %s\n", map->key);
+			if (held != HELD_NONE)
+				pr_err("wataash_atkbd_emacs: [BUG] KEY_STATE_MODIFIER_RELEASED for CapsLock %s while held: %d", map->key, held);
+			action(serio, map->release_action_codes);
+			map->key_state = KEY_STATE_RELEASED;
+		}
+
+		map = &maps_henkan[code & ~0x80U];
+		if (map->key_state == KEY_STATE_MODIFIER_RELEASED) {
+			dev_dbg(&serio->dev, "wataash_atkbd_emacs: release Henkan %s\n", map->key);
+			if (held != HELD_NONE)
+				pr_err("wataash_atkbd_emacs: [BUG] KEY_STATE_MODIFIER_RELEASED for Henkan %s while held: %d", map->key, held);
+			action(serio, map->release_action_codes);
+			map->key_state = KEY_STATE_RELEASED;
+		}
+	}
+
+	if (held == HELD_NONE) {
+		dev_dbg(&serio->dev, "wataash_atkbd_emacs: HELD_NONE, no action\n");
+		return wataash_do_atkbd_emacs_bypass;
+	}
+
+	static_assert(ARRAY_SIZE(maps_capslock) == ARRAY_SIZE(maps_henkan));
+	static_assert(ARRAY_SIZE(maps_capslock) == 0x80);
+	compiletime_assert((code & ~0x80U) < ARRAY_SIZE(maps_capslock), "(code & ~0x80U) < ARRAY_SIZE(maps_capslock)"); /* code <= 0xffU */
+	// compiletime_assert(code != code_caps_press && code != code_caps_release, "code != code_caps_press && code != code_caps_release");
+	// compiletime_assert(code != code_hen_press && code != code_hen_release, "code != code_hen_press && code != code_hen_release");
+	compiletime_assert(held != HELD_NONE, "held != HELD_NONE");
+
+	const char *const mod_str = (const char *[HELD_NONE]){ "CapsLock", "Henkan" }[held];
+
+	static_assert(ARRAY_SIZE(maps_capslock) == ARRAY_SIZE(maps_henkan));
+	static_assert(ARRAY_SIZE(maps_capslock) == 0x80);
+	compiletime_assert((code & ~0x80U) < ARRAY_SIZE(maps_capslock), "(code & ~0x80U) < ARRAY_SIZE(maps_capslock)"); /* code <= 0xffU */
+	struct key_map *map = &(struct key_map *[HELD_NONE]){
+		(struct key_map *)&maps_capslock,
+		(struct key_map *)&maps_henkan,
+	}[held][code & ~0x80U];
+	if (unlikely(map->key == NULL)) {
+		dev_dbg(&serio->dev, "wataash_atkbd_emacs: %s: ignore 0x%02x\n", mod_str, code);
+		return wataash_do_atkbd_emacs_bypass;
+	}
+
+	dev_dbg(&serio->dev, "wataash_atkbd_emacs: vvv action [%s] 0x%02x (%s) -> %s\n", mod_str, code, map->key, press ? map->press_action_codes_str : map->release_action_codes_str);
+	if (press) {
+		switch (map->key_state) {
+		case KEY_STATE_RELEASED:
+			break;
+		case KEY_STATE_PRESSING:
+			// holding (repeat)
+			break;
+		case KEY_STATE_MODIFIER_RELEASED:
+			pr_err("wataash_atkbd_emacs: [BUG] held:%d key:%s press, but map->key_state: KEY_STATE_MODIFIER_RELEASED; reset to KEY_STATE_RELEASED", held, map->key);
+			break;
+		default:
+			unreachable();
+		}
+		map->key_state = KEY_STATE_RELEASED;
+	} else {
+		switch (map->key_state) {
+		case KEY_STATE_RELEASED:
+			pr_err("wataash_atkbd_emacs: [BUG] held:%d key:%s release, but map->key_state: KEY_STATE_RELEASED; reset to KEY_STATE_PRESSING", held, map->key);
+			break;
+		case KEY_STATE_PRESSING:
+			break;
+		case KEY_STATE_MODIFIER_RELEASED:
+			pr_err("wataash_atkbd_emacs: [BUG] held:%d key:%s release, but map->key_state: KEY_STATE_MODIFIER_RELEASED; reset to KEY_STATE_PRESSING", held, map->key);
+			break;
+		default:
+			unreachable();
+		}
+		map->key_state = KEY_STATE_PRESSING;
+	}
+	action(serio, press ? map->press_action_codes : map->release_action_codes);
+	if (press) {
+		// compiletime_assert(map->key_state == KEY_STATE_RELEASED, "map->key_state == KEY_STATE_RELEASED");
+		map->key_state = KEY_STATE_PRESSING;
+	} else {
+		// compiletime_assert(map->key_state == KEY_STATE_PRESSING, "map->key_state == KEY_STATE_PRESSING");
+		map->key_state = KEY_STATE_RELEASED;
+	}
+	dev_dbg(&serio->dev, "wataash_atkbd_emacs: ^^^ action done\n");
+
+	return wataash_do_atkbd_emacs_consumed;
+}
+
+irqreturn_t atkbd_interrupt_(struct serio *serio, unsigned char data, unsigned int flags)
+{
+	return atkbd_interrupt(serio, data, flags);
+}
+
 /*
  * atkbd_interrupt(). Here takes place processing of data received from
  * the keyboard into events.
@@ -430,6 +915,17 @@ static irqreturn_t atkbd_interrupt(struct serio *serio, unsigned char data,
 
 	if (!atkbd->enabled)
 		goto out;
+
+	if (unlikely((flags & ~SERIO_WATAASH_DOING_ACTION) != 0))
+		pr_err("wataash_atkbd_emacs: [BUG] unexpected flags: %u (data: %u)", flags, data);
+	if (likely((flags & SERIO_WATAASH_DOING_ACTION) == 0)) {
+		if (wataash_do_atkbd_emacs(serio, code) == wataash_do_atkbd_emacs_consumed) {
+			goto out;
+		}
+	} else {
+		dev_dbg(&serio->dev, "wataash_atkbd_emacs: doing action 0x%02x\n", data);
+		flags &= ~SERIO_WATAASH_DOING_ACTION;
+	}
 
 	input_event(dev, EV_MSC, MSC_RAW, code);
 

@@ -931,6 +931,17 @@ asmlinkage __visible void __init __no_sanitize_address start_kernel(void)
 	char *command_line;
 	char *after_dashes;
 
+	// @wataash:debug-init:v2 3
+#if 0
+	for (;;) {
+		volatile bool break_ = false;
+		asm("nop"); // gdb: break if break_ = 1
+		if (break_)
+			break;
+		asm("nop");
+	}
+#endif
+
 	set_task_stack_end_magic(&init_task);
 	smp_setup_processor_id();
 	debug_objects_early_init();
@@ -1589,7 +1600,7 @@ void __init console_on_rootfs(void)
 	init_dup(file);
 	fput(file);
 }
-
+void wataash_sandbox(void);
 static noinline void __init kernel_init_freeable(void)
 {
 	/* Now the scheduler is fully set up and can do blocking allocations */
@@ -1626,7 +1637,7 @@ static noinline void __init kernel_init_freeable(void)
 
 	wait_for_initramfs();
 	console_on_rootfs();
-
+	wataash_sandbox();
 	/*
 	 * check if there is an early userspace init.  If yes, let it do all
 	 * the work

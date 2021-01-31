@@ -1346,6 +1346,8 @@ static void i8042_shutdown(struct platform_device *dev)
 	i8042_controller_reset(false);
 }
 
+extern struct serio *wataash_serio_atkbd;
+
 static int i8042_create_kbd_port(void)
 {
 	struct serio *serio;
@@ -1354,6 +1356,8 @@ static int i8042_create_kbd_port(void)
 	serio = kzalloc(sizeof(struct serio), GFP_KERNEL);
 	if (!serio)
 		return -ENOMEM;
+
+	wataash_serio_atkbd = serio;
 
 	serio->id.type		= i8042_direct ? SERIO_8042 : SERIO_8042_XL;
 	serio->write		= i8042_dumbkbd ? NULL : i8042_kbd_write;

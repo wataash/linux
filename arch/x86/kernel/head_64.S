@@ -249,6 +249,14 @@ SYM_INNER_LABEL(secondary_startup_64_no_verify, SYM_L_GLOBAL)
 	 */
 	lgdt	early_gdt_descr(%rip)
 
+	// @wataash:debug-init:v2 1
+#if 0
+	mov $1,%rax
+.Ldebug_init:
+	test $1,%rax // gdb: break if $rax = 0
+	jnz	.Ldebug_init
+#endif
+
 	/* set up data segments */
 	xorl %eax,%eax
 	movl %eax,%ds

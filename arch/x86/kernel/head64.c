@@ -473,6 +473,17 @@ static void __init copy_bootdata(char *real_mode_data)
 
 asmlinkage __visible void __init x86_64_start_kernel(char * real_mode_data)
 {
+	// @wataash:debug-init:v2 2
+#if 0
+	for (;;) {
+		volatile bool break_ = false;
+		asm("nop"); // gdb: break if break_ = 1
+		if (break_)
+			break;
+		asm("nop");
+	}
+#endif
+
 	/*
 	 * Build-time sanity checks on the kernel image and module
 	 * area mappings. (these are purely build-time and produce no code)

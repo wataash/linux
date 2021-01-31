@@ -220,6 +220,10 @@ fi
 
 create_package "$packagename" "$tmpdir"
 
+# avoid:
+# # dpkg-deb: building package 'linux-image-5.10.0-rc7+-dbg' in '../linux-image-5.10.0-rc7+-dbg_5.10.0-rc7+-1_amd64.deb'.
+# it's too long and unneeded for me
+if false; then
 if [ -n "$BUILD_DEBUG" ] ; then
 	# Build debug package
 	# Different tools want the image in different locations
@@ -232,6 +236,7 @@ if [ -n "$BUILD_DEBUG" ] ; then
 	# kdump-tools
 	ln -s lib/modules/$version/vmlinux $dbg_dir/usr/lib/debug/vmlinux-$version
 	create_package "$dbg_packagename" "$dbg_dir"
+fi
 fi
 
 exit 0
