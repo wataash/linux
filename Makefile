@@ -445,14 +445,26 @@ HOSTCXX	= g++
 endif
 HOSTPKG_CONFIG	= pkg-config
 
+# when?
+ifeq (0, 1)
 KBUILD_USERHOSTCFLAGS := -Wall -Wmissing-prototypes -Wstrict-prototypes \
 			 -O2 -fomit-frame-pointer -std=gnu11 \
 			 -Wdeclaration-after-statement
+else
+KBUILD_USERHOSTCFLAGS := -Wall -Wmissing-prototypes -Wstrict-prototypes \
+			 -O2 -ggdb3 -fomit-frame-pointer -std=gnu11 \
+			 -Wdeclaration-after-statement
+endif
 KBUILD_USERCFLAGS  := $(KBUILD_USERHOSTCFLAGS) $(USERCFLAGS)
 KBUILD_USERLDFLAGS := $(USERLDFLAGS)
 
 KBUILD_HOSTCFLAGS   := $(KBUILD_USERHOSTCFLAGS) $(HOST_LFS_CFLAGS) $(HOSTCFLAGS)
+# make xconfig
+ifeq (0, 1)
 KBUILD_HOSTCXXFLAGS := -Wall -O2 $(HOST_LFS_CFLAGS) $(HOSTCXXFLAGS)
+else
+  KBUILD_HOSTCXXFLAGS := -Wall -O2 -ggdb3 $(HOST_LFS_CFLAGS) $(HOSTCXXFLAGS)
+endif
 KBUILD_HOSTLDFLAGS  := $(HOST_LFS_LDFLAGS) $(HOSTLDFLAGS)
 KBUILD_HOSTLDLIBS   := $(HOST_LFS_LIBS) $(HOSTLDLIBS)
 
@@ -763,12 +775,22 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, format-truncation)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, address-of-packed-member)
 
+ifeq (0, 1)
 ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
 KBUILD_CFLAGS += -O2
 else ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3
 KBUILD_CFLAGS += -O3
 else ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS += -Os
+endif
+else
+  ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
+    KBUILD_CFLAGS += -O0 -Wno-unused-variable  # @ref:linux-build-O0
+  else ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3
+    KBUILD_CFLAGS += -Ozzzzz3TODO
+  else ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
+    KBUILD_CFLAGS += -OzzzzzsTODO
+  endif
 endif
 
 # Tell gcc to never replace conditional load with a non-conditional one
@@ -790,6 +812,9 @@ endif
 ifneq ($(CONFIG_FRAME_WARN),0)
 KBUILD_CFLAGS += -Wframe-larger-than=$(CONFIG_FRAME_WARN)
 endif
+
+# KBUILD_CFLAGS += -Wno-frame-larger-than  # not work?
+KBUILD_CFLAGS += -Wframe-larger-than=9999
 
 stackp-flags-y                                    := -fno-stack-protector
 stackp-flags-$(CONFIG_STACKPROTECTOR)             := -fstack-protector
