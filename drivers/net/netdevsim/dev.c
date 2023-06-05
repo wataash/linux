@@ -57,7 +57,7 @@ static inline unsigned int nsim_dev_port_index_to_vf_index(unsigned int port_ind
 static struct dentry *nsim_dev_ddir;
 
 unsigned int nsim_dev_get_vfs(struct nsim_dev *nsim_dev)
-{
+{ panic("@ref:qc-linux-build-O0-undefined");
 	WARN_ON(!lockdep_rtnl_is_held() &&
 		!devl_lock_is_held(priv_to_devlink(nsim_dev)));
 

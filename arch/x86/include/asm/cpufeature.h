@@ -155,14 +155,14 @@ extern void clear_cpu_cap(struct cpuinfo_x86 *c, unsigned int bit);
 
 #define setup_force_cpu_bug(bit) setup_force_cpu_cap(bit)
 
-#if defined(__clang__) && !defined(CONFIG_CC_HAS_ASM_GOTO)
+#if 1 // #if defined(__clang__) && !defined(CONFIG_CC_HAS_ASM_GOTO) // @ref:qc-linux-build-O0-static_cpu_has-no-asm-goto
 
 /*
  * Workaround for the sake of BPF compilation which utilizes kernel
  * headers, but clang does not support ASM GOTO and fails the build.
  */
 #ifndef __BPF_TRACING__
-#warning "Compiler lacks ASM_GOTO support. Add -D __BPF_TRACING__ to your compiler arguments"
+// #warning "Compiler lacks ASM_GOTO support. Add -D __BPF_TRACING__ to your compiler arguments" // @ref:qc-linux-build-O0-static_cpu_has-no-asm-goto
 #endif
 
 #define static_cpu_has(bit)            boot_cpu_has(bit)

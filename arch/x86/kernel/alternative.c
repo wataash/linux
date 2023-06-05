@@ -881,7 +881,7 @@ static noinline void __init int3_selftest(void)
 }
 
 void __init alternative_instructions(void)
-{
+{ // panic("@ref:qc-linux-build-O0-ld-undefined-reference"); // really panic
 	int3_selftest();
 
 	/*
@@ -937,9 +937,9 @@ void __init alternative_instructions(void)
 	 * alternatives can be overwritten by their immediate fragments.
 	 */
 	apply_alternatives(__alt_instructions, __alt_instructions_end);
-
+#ifdef CONFIG_X86_KERNEL_IBT // @ref:qc-linux-build-O0-ld-undefined-reference
 	apply_ibt_endbr(__ibt_endbr_seal, __ibt_endbr_seal_end);
-
+#endif
 #ifdef CONFIG_SMP
 	/* Patch to UP if other cpus not imminent. */
 	if (!noreplace_smp && (num_present_cpus() == 1 || setup_max_cpus <= 1)) {

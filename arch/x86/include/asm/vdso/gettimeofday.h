@@ -195,7 +195,7 @@ long clock_getres32_fallback(clockid_t _clkid, struct old_timespec32 *_ts)
 
 #ifdef CONFIG_PARAVIRT_CLOCK
 static u64 vread_pvclock(void)
-{
+{ return 0; // panic("@ref:qc-linux-build-O0-ld-undefined-reference");
 	const struct pvclock_vcpu_time_info *pvti = &pvclock_page.pvti;
 	u32 version;
 	u64 ret;
@@ -237,7 +237,7 @@ static u64 vread_pvclock(void)
 
 #ifdef CONFIG_HYPERV_TIMER
 static u64 vread_hvclock(void)
-{
+{ return 0; // panic("@ref:qc-linux-build-O0-ld-undefined-reference");
 	return hv_read_tsc_page(&hvclock_page);
 }
 #endif

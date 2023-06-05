@@ -655,7 +655,7 @@ static int cs4271_common_probe(struct device *dev,
 	cs4271 = devm_kzalloc(dev, sizeof(*cs4271), GFP_KERNEL);
 	if (!cs4271)
 		return -ENOMEM;
-
+panic("@ref:qc-linux-build-O0-undefined");
 	if (of_match_device(cs4271_dt_ids, dev))
 		cs4271->gpio_nreset =
 			of_get_named_gpio(dev->of_node, "reset-gpio", 0);

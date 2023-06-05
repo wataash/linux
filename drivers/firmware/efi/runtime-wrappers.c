@@ -165,7 +165,6 @@ static DEFINE_SEMAPHORE(efi_runtime_lock);
 #ifdef CONFIG_X86_UV
 extern struct semaphore __efi_uv_runtime_lock __alias(efi_runtime_lock);
 #endif
-
 /*
  * Calls the appropriate efi_runtime_service() with the appropriate
  * arguments.
@@ -176,6 +175,7 @@ extern struct semaphore __efi_uv_runtime_lock __alias(efi_runtime_lock);
  * 2. If argument was a value, recast it from void pointer to original
  * pointer type and dereference it.
  */
+__attribute__((optimize("-O2"))) // @ref:qc-linux-build-O0-asm-O2
 static void efi_call_rts(struct work_struct *work)
 {
 	void *arg1, *arg2, *arg3, *arg4, *arg5;
@@ -342,7 +342,7 @@ static efi_status_t virt_efi_set_variable(efi_char16_t *name,
 	up(&efi_runtime_lock);
 	return status;
 }
-
+__attribute__((optimize("-O2"))) // @ref:qc-linux-build-O0-asm-O2
 static efi_status_t
 virt_efi_set_variable_nonblocking(efi_char16_t *name, efi_guid_t *vendor,
 				  u32 attr, unsigned long data_size,
@@ -377,7 +377,7 @@ static efi_status_t virt_efi_query_variable_info(u32 attr,
 	up(&efi_runtime_lock);
 	return status;
 }
-
+__attribute__((optimize("-O2"))) // @ref:qc-linux-build-O0-asm-O2
 static efi_status_t
 virt_efi_query_variable_info_nonblocking(u32 attr,
 					 u64 *storage_space,
@@ -409,7 +409,7 @@ static efi_status_t virt_efi_get_next_high_mono_count(u32 *count)
 	up(&efi_runtime_lock);
 	return status;
 }
-
+__attribute__((optimize("-O2"))) // @ref:qc-linux-build-O0-asm-O2
 static void virt_efi_reset_system(int reset_type,
 				  efi_status_t status,
 				  unsigned long data_size,

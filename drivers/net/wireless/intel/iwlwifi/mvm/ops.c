@@ -994,7 +994,7 @@ static void iwl_mvm_mei_roaming_forbidden(void *priv, bool forbidden)
 	if (!mvm->hw_registered || !mvm->csme_vif)
 		return;
 
-	iwl_mvm_send_roaming_forbidden_event(mvm, mvm->csme_vif, forbidden);
+	panic("@ref:qc-linux-build-O0-undefined"); // iwl_mvm_send_roaming_forbidden_event(mvm, mvm->csme_vif, forbidden);
 }
 
 static void iwl_mvm_sap_connected_wk(struct work_struct *wk)

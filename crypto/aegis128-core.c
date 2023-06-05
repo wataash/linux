@@ -458,7 +458,7 @@ static int crypto_aegis128_encrypt_simd(struct aead_request *req)
 
 	if (!aegis128_do_simd())
 		return crypto_aegis128_encrypt_generic(req);
-
+panic("@ref:qc-linux-build-O0-undefined"); 
 	skcipher_walk_aead_encrypt(&walk, req, false);
 	crypto_aegis128_init_simd(&state, &ctx->key, req->iv);
 	crypto_aegis128_process_ad(&state, req->src, req->assoclen, true);
@@ -486,7 +486,7 @@ static int crypto_aegis128_decrypt_simd(struct aead_request *req)
 
 	scatterwalk_map_and_copy(tag.bytes, req->src, req->assoclen + cryptlen,
 				 authsize, 0);
-
+panic("@ref:qc-linux-build-O0-undefined");
 	skcipher_walk_aead_decrypt(&walk, req, false);
 	crypto_aegis128_init_simd(&state, &ctx->key, req->iv);
 	crypto_aegis128_process_ad(&state, req->src, req->assoclen, true);

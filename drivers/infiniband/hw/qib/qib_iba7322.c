@@ -1402,7 +1402,7 @@ static void flush_fifo(struct qib_pportdata *ppd)
 	static struct ib_header ibhdr = {
 		.lrh[0] = cpu_to_be16(0xF000 | QIB_LRH_BTH),
 		.lrh[1] = IB_LID_PERMISSIVE,
-		.lrh[2] = cpu_to_be16(hdrwords + SIZE_OF_CRC),
+		// .lrh[2] = cpu_to_be16(hdrwords + SIZE_OF_CRC), // @ref:qc-linux-build-O0-initializer-element-is-not-constant
 		.lrh[3] = IB_LID_PERMISSIVE,
 		.u.oth.bth[0] = cpu_to_be32(
 			(IB_OPCODE_UD_SEND_ONLY << 24) | QIB_DEFAULT_P_KEY),

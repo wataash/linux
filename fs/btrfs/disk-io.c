@@ -1009,7 +1009,7 @@ struct extent_buffer *btrfs_find_create_tree_block(
 						int level)
 {
 	if (btrfs_is_testing(fs_info))
-		return alloc_test_extent_buffer(fs_info, bytenr);
+		panic("@ref:qc-linux-build-O0-undefined"); // return alloc_test_extent_buffer(fs_info, bytenr);
 	return alloc_extent_buffer(fs_info, bytenr, owner_root, level);
 }
 

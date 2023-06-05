@@ -54,28 +54,28 @@ static void dma_atomic_pool_size_add(gfp_t gfp, size_t size)
 }
 
 static bool cma_in_zone(gfp_t gfp)
-{
+{ // panic("@ref:qc-linux-build-O0-ld-undefined-reference"); // really panic
 	unsigned long size;
 	phys_addr_t end;
 	struct cma *cma;
-
 	cma = dev_get_cma_area(NULL);
 	if (!cma)
 		return false;
-
+#ifdef CONFIG_CMA // panic("@ref:qc-linux-build-O0-ld-undefined-reference");
 	size = cma_get_size(cma);
+#endif
 	if (!size)
 		return false;
-
 	/* CMA can't cross zone boundaries, see cma_activate_area() */
+#ifdef CONFIG_CMA // panic("@ref:qc-linux-build-O0-ld-undefined-reference");
 	end = cma_get_base(cma) + size - 1;
+#endif
 	if (IS_ENABLED(CONFIG_ZONE_DMA) && (gfp & GFP_DMA))
 		return end <= DMA_BIT_MASK(zone_dma_bits);
 	if (IS_ENABLED(CONFIG_ZONE_DMA32) && (gfp & GFP_DMA32))
 		return end <= DMA_BIT_MASK(32);
 	return true;
 }
-
 static int atomic_pool_expand(struct gen_pool *pool, size_t pool_size,
 			      gfp_t gfp)
 {

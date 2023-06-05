@@ -316,7 +316,7 @@ void get_mpctree_visual_confirm_color(
 void get_surface_visual_confirm_color(
 		const struct pipe_ctx *pipe_ctx,
 		struct tg_color *color)
-{
+{ panic("@ref:qc-linux-build-O0-no-sse");
 	uint32_t color_value = MAX_TG_COLOR_VALUE;
 
 	switch (pipe_ctx->plane_res.scl_data.format) {

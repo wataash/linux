@@ -8,8 +8,8 @@
 #define _LINUX_BITFIELD_H
 
 #include <linux/build_bug.h>
+#include <linux/panic.h>
 #include <asm/byteorder.h>
-
 /*
  * Bitfield access macros
  *
@@ -136,7 +136,7 @@ __bad_mask(void);
 static __always_inline u64 field_multiplier(u64 field)
 {
 	if ((field | (field - 1)) & ((field | (field - 1)) + 1))
-		__bad_mask();
+		panic("@ref:qc-linux-build-O0-compile-time-bad-mask-fail"); // __bad_mask();
 	return field & -field;
 }
 static __always_inline u64 field_mask(u64 field)

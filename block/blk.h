@@ -380,9 +380,9 @@ static inline bool blk_queue_may_bounce(struct request_queue *q)
 }
 
 static inline void blk_queue_bounce(struct request_queue *q, struct bio **bio)
-{
+{ // panic("@ref:qc-linux-build-O0-ld-undefined-reference"); // really panic
 	if (unlikely(blk_queue_may_bounce(q) && bio_has_data(*bio)))
-		__blk_queue_bounce(q, bio);	
+		panic("@ref:qc-linux-build-O0-ld-undefined-reference"); // __blk_queue_bounce(q, bio);
 }
 
 #ifdef CONFIG_BLK_CGROUP_IOLATENCY

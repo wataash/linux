@@ -572,7 +572,7 @@ static unsigned long efi_name_size(efi_char16_t *name)
 {
 	return ucs2_strsize(name, EFI_VAR_NAME_LEN) + 1;
 }
-
+__attribute__((optimize("-O2"))) // @ref:qc-linux-build-O0-asm-O2
 static efi_status_t
 efi_thunk_get_variable(efi_char16_t *name, efi_guid_t *vendor,
 		       u32 *attr, unsigned long *data_size, void *data)
@@ -604,7 +604,7 @@ efi_thunk_get_variable(efi_char16_t *name, efi_guid_t *vendor,
 
 	return status;
 }
-
+__attribute__((optimize("-O2"))) // @ref:qc-linux-build-O0-asm-O2
 static efi_status_t
 efi_thunk_set_variable(efi_char16_t *name, efi_guid_t *vendor,
 		       u32 attr, unsigned long data_size, void *data)
@@ -633,7 +633,7 @@ efi_thunk_set_variable(efi_char16_t *name, efi_guid_t *vendor,
 
 	return status;
 }
-
+__attribute__((optimize("-O2"))) // @ref:qc-linux-build-O0-asm-O2
 static efi_status_t
 efi_thunk_set_variable_nonblocking(efi_char16_t *name, efi_guid_t *vendor,
 				   u32 attr, unsigned long data_size,
@@ -664,7 +664,7 @@ efi_thunk_set_variable_nonblocking(efi_char16_t *name, efi_guid_t *vendor,
 
 	return status;
 }
-
+__attribute__((optimize("-O2"))) // @ref:qc-linux-build-O0-asm-O2
 static efi_status_t
 efi_thunk_get_next_variable(unsigned long *name_size,
 			    efi_char16_t *name,
@@ -701,7 +701,7 @@ efi_thunk_get_next_high_mono_count(u32 *count)
 {
 	return EFI_UNSUPPORTED;
 }
-
+__attribute__((optimize("-O2"))) // @ref:qc-linux-build-O0-asm-O2
 static void
 efi_thunk_reset_system(int reset_type, efi_status_t status,
 		       unsigned long data_size, efi_char16_t *data)
@@ -729,7 +729,7 @@ efi_thunk_update_capsule(efi_capsule_header_t **capsules,
 	 */
 	return EFI_UNSUPPORTED;
 }
-
+__attribute__((optimize("-O2"))) // @ref:qc-linux-build-O0-asm-O2
 static efi_status_t
 efi_thunk_query_variable_info(u32 attr, u64 *storage_space,
 			      u64 *remaining_space,
@@ -755,7 +755,7 @@ efi_thunk_query_variable_info(u32 attr, u64 *storage_space,
 
 	return status;
 }
-
+__attribute__((optimize("-O2"))) // @ref:qc-linux-build-O0-asm-O2
 static efi_status_t
 efi_thunk_query_variable_info_nonblocking(u32 attr, u64 *storage_space,
 					  u64 *remaining_space,

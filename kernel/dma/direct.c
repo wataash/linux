@@ -207,7 +207,7 @@ static void *dma_direct_alloc_no_mapping(struct device *dev, size_t size,
 
 void *dma_direct_alloc(struct device *dev, size_t size,
 		dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs)
-{
+{ // panic("@ref:qc-linux-build-O0-ld-undefined-reference"); // really panic
 	bool remap = false, set_uncached = false;
 	struct page *page;
 	void *ret;
@@ -228,9 +228,9 @@ void *dma_direct_alloc(struct device *dev, size_t size,
 		if (!IS_ENABLED(CONFIG_ARCH_HAS_DMA_SET_UNCACHED) &&
 		    !IS_ENABLED(CONFIG_DMA_DIRECT_REMAP) &&
 		    !IS_ENABLED(CONFIG_DMA_GLOBAL_POOL) &&
-		    !is_swiotlb_for_alloc(dev))
+		    !is_swiotlb_for_alloc(dev)) { panic("@ref:qc-linux-build-O0-ld-undefined-reference");
 			return arch_dma_alloc(dev, size, dma_handle, gfp,
-					      attrs);
+					      attrs); }
 
 		/*
 		 * If there is a global pool, always allocate from it for
@@ -303,7 +303,7 @@ void *dma_direct_alloc(struct device *dev, size_t size,
 
 	if (set_uncached) {
 		arch_dma_prep_coherent(page, size);
-		ret = arch_dma_set_uncached(ret, size);
+		panic("@ref:qc-linux-build-O0-ld-undefined-reference"); // ret = arch_dma_set_uncached(ret, size);
 		if (IS_ERR(ret))
 			goto out_encrypt_pages;
 	}
@@ -321,7 +321,7 @@ out_free_pages:
 
 void dma_direct_free(struct device *dev, size_t size,
 		void *cpu_addr, dma_addr_t dma_addr, unsigned long attrs)
-{
+{ // panic("@ref:qc-linux-build-O0-ld-undefined-reference"); // really panic 多分
 	unsigned int page_order = get_order(size);
 
 	if ((attrs & DMA_ATTR_NO_KERNEL_MAPPING) &&
@@ -336,7 +336,7 @@ void dma_direct_free(struct device *dev, size_t size,
 	    !IS_ENABLED(CONFIG_DMA_GLOBAL_POOL) &&
 	    !dev_is_dma_coherent(dev) &&
 	    !is_swiotlb_for_alloc(dev)) {
-		arch_dma_free(dev, size, cpu_addr, dma_addr, attrs);
+		panic("@ref:qc-linux-build-O0-ld-undefined-reference"); // arch_dma_free(dev, size, cpu_addr, dma_addr, attrs);
 		return;
 	}
 

@@ -688,7 +688,6 @@ int efi_capsule_setup_info(struct capsule_info *cap_info, void *kbuff,
 }
 
 #endif
-
 /*
  * If any access by any efi runtime service causes a page fault, then,
  * 1. If it's efi_reset_system(), reboot through BIOS.
@@ -700,6 +699,7 @@ int efi_capsule_setup_info(struct capsule_info *cap_info, void *kbuff,
  * @return: Returns, if the page fault is not handled. This function
  * will never return if the page fault is handled successfully.
  */
+__attribute__((optimize("-O2"))) // @ref:qc-linux-build-O0-asm-O2
 void efi_crash_gracefully_on_page_fault(unsigned long phys_addr)
 {
 	if (!IS_ENABLED(CONFIG_X86_64))
